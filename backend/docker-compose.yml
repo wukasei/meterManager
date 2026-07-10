@@ -1,0 +1,13 @@
+services:
+  backend:
+    build:
+      context: .
+    container_name: meter-backend
+    ports:
+      - "${PORT}:5000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    command: ["node", "server.js"]
