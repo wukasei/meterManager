@@ -26,8 +26,8 @@ import { format } from 'date-fns';
 const MeterReadingsSection = ({ initialExpanded = true }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const { meterReadings, removeReading, addReading, editReading, setError } = useMeterReadings();
+  // addReading, editReading,
+  const { meterReadings, removeReading, setError, fetchReadings } = useMeterReadings();
   const [expanded, setExpanded] = useState(initialExpanded);
   const [formOpen, setFormOpen] = useState(false);
   const [readingToEdit, setReadingToEdit] = useState(null);
@@ -49,14 +49,15 @@ const MeterReadingsSection = ({ initialExpanded = true }) => {
       setError(err.message);
     }
   };
-  const handleFormSubmit = async (formData) => {
-    if (readingToEdit) {
-      await editReading(readingToEdit.id, formData);
-    } else {
-      await addReading(formData);
-    }
+  const handleFormSubmit = async () => {
+    // if (readingToEdit) {
+    //   await editReading(readingToEdit.id, formData);
+    // } else {
+    //   await addReading(formData);
+    // }
     setFormOpen(false);
     setReadingToEdit(null);
+    await fetchReadings();
   };
 
   const handleCloseForm = () => {

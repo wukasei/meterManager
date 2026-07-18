@@ -165,9 +165,7 @@ class TariffService {
     });
 
     if (!tariff) {
-      throw new Error(
-        `No applicable tariff found for location ${location_id}, resource ${energy_resource_type_id} on ${reading_date}`
-      );
+      throw new Error('Invalid: Для цієї локації та типу ресурсу не налаштовано активний Тариф на обрану дату.');
     }
 
     return tariff;

@@ -242,6 +242,10 @@ class MeterReadingService {
       reading_date
     );
 
+    if(!tariff){
+      throw new Error('Invalid: Для цієї локації та типу ресурсу не налаштовано активний Тариф на обрану дату.');
+    }
+
     /*const areaPercent =
       parseFloat(total_rented_area_percentage) ||
       parseFloat(rental_area) ||
@@ -421,6 +425,9 @@ class MeterReadingService {
         meterTenant.Meter.energy_resource_type_id,
         updateData.reading_date || reading.reading_date
       );
+      if(!tariff){
+        throw new Error('Invalid: Для цієї локації та типу ресурсу не налаштовано активний Тариф на обрану дату.');
+      }
       const price = parseFloat(tariff?.price ?? 0);
       const calculationCoeff =
         updateData.calculation_coefficient ?? reading.calculation_coefficient ?? 1;

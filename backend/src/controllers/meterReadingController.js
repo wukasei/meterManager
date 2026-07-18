@@ -9,6 +9,7 @@ const mapErrorToStatus = (errorMessage) => {
 };
 
 const sendErrorResponse = (res, error) => {
+  console.log("🔥 РЕАЛЬНА ПОМИЛКА:", error.message);
   const statusCode = mapErrorToStatus(error.message);
   const clientMessage = statusCode === 500 ? 'Internal server error' : error.message;
 

@@ -224,35 +224,35 @@ export const useTenants = () => {
     [mutateTenants, getToken, isBlocked]
   );
 
-  const assignLocation = useCallback(
-    async (tenantId, locationId) => {
-      if (isBlocked) throw new Error('User is blocked');
-      const token = await getToken();
-      if (!token) throw new Error('No token available');
-      try {
-        await tenantApi.assignLocationToTenant(token, tenantId, locationId);
-      } catch (err) {
-        const errorMessage = err.response?.data?.message || 'Помилка при призначенні локації орендарю';
-        throw new Error(errorMessage);
-      }
-    },
-    [getToken, isBlocked]
-  );
+  // const assignLocation = useCallback(
+  //   async (tenantId, locationId) => {
+  //     if (isBlocked) throw new Error('User is blocked');
+  //     const token = await getToken();
+  //     if (!token) throw new Error('No token available');
+  //     try {
+  //       await tenantApi.assignLocationToTenant(token, tenantId, locationId);
+  //     } catch (err) {
+  //       const errorMessage = err.response?.data?.message || 'Помилка при призначенні локації орендарю';
+  //       throw new Error(errorMessage);
+  //     }
+  //   },
+  //   [getToken, isBlocked]
+  // );
 
-  const unassignLocation = useCallback(
-    async (locationId) => {
-      if (isBlocked) throw new Error('User is blocked');
-      const token = await getToken();
-      if (!token) throw new Error('No token available');
-      try {
-        await tenantApi.unassignLocationFromTenant(token, locationId);
-      } catch (err) {
-        const errorMessage = err.response?.data?.message || 'Помилка при відкріпленні локації від орендаря';
-        throw new Error(errorMessage);
-      }
-    },
-    [getToken, isBlocked]
-  );
+  // const unassignLocation = useCallback(
+  //   async (locationId) => {
+  //     if (isBlocked) throw new Error('User is blocked');
+  //     const token = await getToken();
+  //     if (!token) throw new Error('No token available');
+  //     try {
+  //       await tenantApi.unassignLocationFromTenant(token, locationId);
+  //     } catch (err) {
+  //       const errorMessage = err.response?.data?.message || 'Помилка при відкріпленні локації від орендаря';
+  //       throw new Error(errorMessage);
+  //     }
+  //   },
+  //   [getToken, isBlocked]
+  // );
 
   const updateTenantStatus = useCallback(
     async (id, is_active) => {
@@ -318,8 +318,8 @@ export const useTenants = () => {
     removeTenant,
     updateTenantStatus,
     getTenantDependencies,
-    assignLocation,
-    unassignLocation,
+    // assignLocation,
+    // unassignLocation,
     refreshTenants: mutateTenants,
     getTenantsByLocation: useCallback(
       (locId) => tenants.filter((t) => t.locations.some((l) => l.id === locId)),
