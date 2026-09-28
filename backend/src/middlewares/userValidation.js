@@ -1,4 +1,5 @@
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
+const handleValidationErrors = require('./handleValidationErrors');
 
 const VALID_ROLES = ['admin', 'manager', 'user'];
 
@@ -12,7 +13,16 @@ const validateFullName = (field, location = body, isOptional = true) => {
   let chain = location(field);
   if (isOptional) chain = chain.optional();
 
-  return chain.isString().withMessage(`${field} must be a string.`);
+  return chain
+    .isString()
+    .withMessage(`${field} must be a string.`)
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage(`${field} cannot be empty.`)
+    .bail()
+    .isLength({ max: 255 })
+    .withMessage(`${field} must not exceed 255 characters.`);
 };
 
 const validateRole = (field, location = body, isOptional = true) => {
@@ -39,18 +49,6 @@ const getUsersQueryValidation = [
   validateRole('role', query, true),
   validateIsActive('is_active', query),
 ];
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array(),
-    });
-  }
-  next();
-};
 
 module.exports = {
   updateUserValidation,

@@ -1,5 +1,10 @@
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
+const handleValidationErrors = require('./handleValidationErrors');
 
+const PRICE_MESSAGE = 'Price must be a non-negative decimal number with up to 4 decimal places';
+
+const validateIdParam = () =>
+  param('id').isInt({ min: 1 }).withMessage('Tariff ID must be a positive integer');
 
 const validatePositiveInt = (field, location = body, isOptional = false) => {
   let chain = location(field);
@@ -9,7 +14,7 @@ const validatePositiveInt = (field, location = body, isOptional = false) => {
 
 const validateDate = (field, location = body, isOptional = false, isRequired = false) => {
     let chain = location(field);
-    if (isRequired) chain = chain.notEmpty().withMessage(`${field} is required`);
+    if (isRequired) chain = chain.notEmpty().withMessage(`${field} is required`).bail();
     if (isOptional) chain = chain.optional({ nullable: true });
     
     return chain
@@ -29,41 +34,45 @@ const validateValidToDate = () =>
         }
       }
       return true;
-    });
+  });
 
+  // isFloat перевіряє, що це невід'ємне число,
+  // isDecimal — кількість знаків після коми (isFloat опцію decimal_digits не підтримує)  
+  const validatePrice = (isOptional = false) => {
+  let chain = body('price');
+ 
+  if (isOptional) {
+    chain = chain.optional();
+  } else {
+    chain = chain.notEmpty().withMessage('Price is required').bail();
+  }
+ 
+  return chain
+    .isFloat({ min: 0 })
+    .withMessage(PRICE_MESSAGE)
+    .bail()
+    .isDecimal({ decimal_digits: '1,4' })
+    .withMessage(PRICE_MESSAGE);
+};
 
 const createTariffValidation = [
   validatePositiveInt('location_id'),
   validatePositiveInt('energy_resource_type_id'),
-
-  body('price')
-    .notEmpty().withMessage('Price is required')
-    .isFloat({ min: 0, decimal_digits: '1,4' })
-    .withMessage('Price must be a non-negative decimal number with up to 4 decimal places'),
-
+  validatePrice(false),
   validateDate('valid_from', body, false, true),
   validateValidToDate(),
 ];
 
 const updateTariffValidation = [
-  param('id').isInt({ min: 1 }).withMessage('Tariff ID must be a positive integer'),
-
+  validateIdParam(),
   validatePositiveInt('location_id', body, true),
   validatePositiveInt('energy_resource_type_id', body, true),
-
-  body('price')
-    .optional()
-    .isFloat({ min: 0, decimal_digits: '1,4' })
-    .withMessage('Price must be a non-negative decimal number with up to 4 decimal places'),
-
-  validateDate('valid_from', body, true), 
-  
-  validateValidToDate(), 
+  validatePrice(true),
+  validateDate('valid_from', body, true),
+  validateValidToDate(),
 ];
 
-const getTariffByIdValidation = [
-  param('id').isInt({ min: 1 }).withMessage('Tariff ID must be a positive integer')
-];
+const getTariffByIdValidation = [validateIdParam()];
 
 const getTariffsQueryValidation = [
   validatePositiveInt('location_id', query, true),
@@ -71,19 +80,6 @@ const getTariffsQueryValidation = [
   validateDate('valid_from', query, true),
   validateDate('valid_to', query, true),
 ];
-
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array(),
-    });
-  }
-  next();
-};
 
 module.exports = {
   createTariffValidation,

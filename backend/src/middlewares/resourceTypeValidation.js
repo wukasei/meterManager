@@ -1,36 +1,29 @@
-const { body, param, query, validationResult } = require('express-validator');
-
+const { body, param, query } = require('express-validator');
+const handleValidationErrors = require('./handleValidationErrors');
 
 const validateIdParam = () => 
   param('id').isInt({ min: 1 }).withMessage('Resource Type ID must be a positive integer');
 
-const validateName = (isOptional = false) => {
-  let chain = body('name').trim();
-  
+// Спільна перевірка текстового поля: обов'язковість, обрізання пробілів і довжина
+const validateTextField = (field, label, { min, max }, isOptional = false) => {
+  let chain = body(field).trim();
+
   if (!isOptional) {
-    chain = chain.notEmpty().withMessage('Name is required');
+    chain = chain.notEmpty().withMessage(`${label} is required`).bail();
   } else {
-    chain = chain.optional().notEmpty().withMessage('Name cannot be empty'); 
+    chain = chain.optional().notEmpty().withMessage(`${label} cannot be empty`).bail();
   }
-  
+
   return chain
-    .isLength({ min: 2, max: 255 })
-    .withMessage('Name must be between 2 and 255 characters.');
+    .isLength({ min, max })
+    .withMessage(`${label} must be between ${min} and ${max} characters.`);
 };
 
-const validateUnit = (isOptional = false) => {
-  let chain = body('unit').trim();
-  
-  if (!isOptional) {
-    chain = chain.notEmpty().withMessage('Unit is required');
-  } else {
-    chain = chain.optional().notEmpty().withMessage('Unit cannot be empty');
-  }
-  
-  return chain
-    .isLength({ min: 1, max: 50 })
-    .withMessage('Unit must be between 1 and 50 characters.');
-};
+const validateName = (isOptional = false) =>
+  validateTextField('name', 'Name', { min: 2, max: 255 }, isOptional);
+
+const validateUnit = (isOptional = false) =>
+  validateTextField('unit', 'Unit', { min: 1, max: 50 }, isOptional);
 
 const validateIsActive = () => 
   body('is_active').optional().isBoolean().withMessage('is_active must be a boolean value.');
@@ -62,18 +55,6 @@ const getResourceTypesQueryValidation = [
     .withMessage('Name filter must be between 1 and 255 characters'),
 ];
 
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array(),
-    });
-  }
-  next();
-};
 
 module.exports = {
   createResourceTypeValidation,

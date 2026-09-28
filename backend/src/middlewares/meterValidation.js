@@ -1,4 +1,5 @@
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
+const handleValidationErrors = require('./handleValidationErrors');
 
 const validatePositiveInt = (field, location = body, isOptional = false) => {
   let chain = location(field);
@@ -14,7 +15,7 @@ const validateDate = (field, isOptional = false, location = body) => {
   if (isOptional) {
     chain = chain.optional({ nullable: true });
   } else {
-    chain = chain.notEmpty();
+    chain = chain.notEmpty().withMessage(`${field} is required`).bail();
   }
   return chain.isISO8601().withMessage(`${field} must be a valid date (YYYY-MM-DD)`);
 };
@@ -104,18 +105,6 @@ const getMeterTenantsQueryValidation = [
   validatePositiveInt('tenant_id', query, true),
   validateBoolean('active_only', query),
 ];
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array(),
-    });
-  }
-  next();
-};
 
 module.exports = {
   createMeterValidation,

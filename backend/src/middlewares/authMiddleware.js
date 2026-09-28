@@ -15,7 +15,8 @@ function logAuth(req, res, next) {
 
 function checkRole(requiredRole) {
   return (req, res, next) => {
-    const userRoles = req.auth?.payload?.[ROLE_CLAIM_KEY] || [];
+    const roles =  req.auth?.payload?.[ROLE_CLAIM_KEY];
+    const userRoles = Array.isArray(roles) ? roles : [];
 
     if (userRoles.includes(requiredRole)) {
       return next();

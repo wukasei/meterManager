@@ -1,4 +1,5 @@
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
+const handleValidationErrors = require('./handleValidationErrors');
 
 const validatePositiveInt = (field, location = body) =>
   location(field).isInt({ min: 1 }).withMessage(`${field} must be a positive integer.`);
@@ -37,11 +38,7 @@ const validateCalculationMethod = (isOptional = false) => {
     .withMessage('calculation_method must be one of: direct, area_based, mixed.');
 };
 
-const createMeterReadingValidation = [
-  validatePositiveInt('meter_tenant_id'),
-  body('reading_date').isISO8601().withMessage('reading_date must be a valid date (YYYY-MM-DD)').notEmpty(),
-
-  validateNonNegativeDecimal('current_reading'),
+const commonFieldValidation = [
   validateNonNegativeDecimal('previous_reading'),
   validateNonNegativeDecimal('consumption'),
   validateNonNegativeDecimal('total_consumption'),
@@ -49,12 +46,7 @@ const createMeterReadingValidation = [
   validateNonNegativeDecimal('direct_consumption'),
   validateNonNegativeDecimal('area_based_consumption'),
 
-  validateCalculationMethod(false),
-
-  validateNonNegativeDecimal('rental_area', '0,2').custom((value) => {
-    if (value !== undefined && value < 0) throw new Error('rental_area cannot be negative');
-    return true;
-  }),
+  validateNonNegativeDecimal('rental_area', '0,2'),
 
   body('total_rented_area_percentage')
     .optional()
@@ -65,7 +57,7 @@ const createMeterReadingValidation = [
         throw new Error('total_rented_area_percentage must be between 0 and 100');
       return true;
     }),
-
+  
   validatePositiveCoefficient('energy_consumption_coefficient', '0,4'),
   validatePositiveCoefficient('calculation_coefficient', '0,4'),
 
@@ -81,6 +73,25 @@ const createMeterReadingValidation = [
     .withMessage('tenant_representative must not exceed 255 characters'),
   body('notes').optional().trim().isLength({ max: 5000 }).withMessage('notes must not exceed 5000 characters'),
   body('act_number').optional().trim().isLength({ max: 100 }).withMessage('act_number must not exceed 100 characters'),
+]
+
+const createMeterReadingValidation = [
+  validatePositiveInt('meter_tenant_id'),
+  body('reading_date').isISO8601().withMessage('reading_date must be a valid date (YYYY-MM-DD)').notEmpty(),
+
+  body('current_reading')
+    .notEmpty()
+    .withMessage('current_reading is required.')
+    .bail()
+    .isDecimal({ decimal_digits: '0,4' })
+    .withMessage('current_reading must be a decimal number.')
+    .custom((value) => {
+      if (value < 0) throw new Error('current_reading cannot be negative.');
+      return true;
+    }),
+
+  validateCalculationMethod(false),
+  ...commonFieldValidation,
 ];
 
 const updateMeterReadingValidation = [
@@ -90,45 +101,9 @@ const updateMeterReadingValidation = [
   body('reading_date').optional().isISO8601().withMessage('reading_date must be a valid date'),
 
   validateNonNegativeDecimal('current_reading'),
-  validateNonNegativeDecimal('previous_reading'),
-  validateNonNegativeDecimal('consumption'),
-  validateNonNegativeDecimal('total_consumption'),
-  validateNonNegativeDecimal('total_cost', '0,2'),
-  validateNonNegativeDecimal('direct_consumption'),
-  validateNonNegativeDecimal('area_based_consumption'),
 
   validateCalculationMethod(true),
-
-  validateNonNegativeDecimal('rental_area', '0,2').custom((value) => {
-    if (value !== undefined && value < 0) throw new Error('rental_area cannot be negative');
-    return true;
-  }),
-
-  body('total_rented_area_percentage')
-    .optional()
-    .isDecimal({ decimal_digits: '0,2' })
-    .withMessage('total_rented_area_percentage must be a decimal number')
-    .custom((value) => {
-      if (value !== undefined && (value < 0 || value > 100))
-        throw new Error('total_rented_area_percentage must be between 0 and 100');
-      return true;
-    }),
-
-  validatePositiveCoefficient('energy_consumption_coefficient', '0,4'),
-  validatePositiveCoefficient('calculation_coefficient', '0,4'),
-
-  body('executor_name')
-    .optional()
-    .trim()
-    .isLength({ max: 255 })
-    .withMessage('executor_name must not exceed 255 characters'),
-  body('tenant_representative')
-    .optional()
-    .trim()
-    .isLength({ max: 255 })
-    .withMessage('tenant_representative must not exceed 255 characters'),
-  body('notes').optional().trim().isLength({ max: 5000 }).withMessage('notes must not exceed 5000 characters'),
-  body('act_number').optional().trim().isLength({ max: 100 }).withMessage('act_number must not exceed 100 characters'),
+  ... commonFieldValidation
 ];
 
 const getMeterReadingByIdValidation = [validatePositiveInt('id', param)];
@@ -152,17 +127,6 @@ const getMeterReadingsQueryValidation = [
     .withMessage('calculation_method must be one of: direct, area_based, mixed'),
 ];
 
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array(),
-    });
-  }
-  next();
-};
 
 module.exports = {
   createMeterReadingValidation,

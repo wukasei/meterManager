@@ -1,4 +1,6 @@
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
+const handleValidationErrors = require('./handleValidationErrors');
+
 const validatePositiveInt = (field, location = body, isOptional = false) => {
   let chain = location(field);
   if (isOptional) chain = chain.optional();
@@ -9,9 +11,9 @@ const validateName = (isOptional = false) => {
   let chain = body('name').trim();
 
   if (!isOptional) {
-    chain = chain.notEmpty().withMessage('Name is required');
+    chain = chain.notEmpty().withMessage('Name is required').bail();
   } else {
-    chain = chain.optional().notEmpty().withMessage('Name cannot be empty');
+    chain = chain.optional().notEmpty().withMessage('Name cannot be empty').bail();
   }
 
   return chain.isLength({ min: 2, max: 255 }).withMessage('Name must be between 2 and 255 characters.');
@@ -73,18 +75,6 @@ const getTenantsQueryValidation = [
     .withMessage('Name filter must be between 1 and 255 characters'),
   validatePositiveInt('location_id', query, true),
 ];
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(422).json({ 
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array(),
-    });
-  }
-  next();
-};
 
 module.exports = {
   createTenantValidation,

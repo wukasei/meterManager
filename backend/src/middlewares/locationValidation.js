@@ -1,4 +1,5 @@
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
+const handleValidationErrors = require('./handleValidationErrors');
 
 const validateName = (isOptional = false) => {
   let chain = body('name').trim();
@@ -12,7 +13,12 @@ const validateName = (isOptional = false) => {
   return chain.isLength({ min: 2, max: 255 }).withMessage('Name must be between 2 and 255 characters.');
 };
 
-const validateAddress = () => body('address').optional({ nullable: true }).trim().isLength({ max: 1000 });
+const validateAddress = () => 
+  body('address')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Address must not exceed 1000 characters.');
 
 const validateTenantId = () =>
   body('tenant_id')
@@ -52,18 +58,6 @@ const getLocationsQueryValidation = [
 const assignTenantValidation = [validateIdParamForAssignment('locationId'), validateIdParamForAssignment('tenantId')];
 
 const unassignTenantValidation = [validateIdParamForAssignment('locationId')];
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array(),
-    });
-  }
-  next();
-};
 
 module.exports = {
   createLocationValidation,

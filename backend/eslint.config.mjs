@@ -19,4 +19,13 @@ export default defineConfig([
       'prettier/prettier': ['off', { endOfLine: 'auto' }],
     },
   },
+  {
+    files: ['**/*.test.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+    },
+  },
 ]);

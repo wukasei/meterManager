@@ -1,12 +1,23 @@
+
+function applyCoefficient(value, coefficient, areaPercentOrSize){
+  return parseFloat(value) * parseFloat(coefficient) * (parseFloat(areaPercentOrSize)/100);
+}
+
 class ConsumptionCalculator {
 
   //Різниця між показниками
   static calculateConsumption(currentReading, previousReading = null) {
-    if (previousReading === null) {
-      return parseFloat(currentReading); // перше показання
+    const current = parseFloat(currentReading);
+
+    if (Number.isNaN(current)) {
+      throw new Error('Invalid meter reading: reading must be a number.');
     }
 
-    const consumption = parseFloat(currentReading) - parseFloat(previousReading);
+    if (previousReading === null) {
+      return current;
+    }
+
+    const consumption = current - parseFloat(previousReading);
 
     if (consumption < 0) {
       throw new Error(
@@ -19,11 +30,8 @@ class ConsumptionCalculator {
 
   // Прямий метод — множимо на коефіцієнт
   static calculateDirect(consumption, calculationCoefficient = 1, areaPercentOrSize = 100) {
-    const adjusted =
-      parseFloat(consumption) *
-      parseFloat(calculationCoefficient) *
-      (parseFloat(areaPercentOrSize) / 100);
-  
+    const adjusted = applyCoefficient(consumption, calculationCoefficient, areaPercentOrSize);
+
     return {
       direct_consumption: adjusted,
       area_based_consumption: 0,
@@ -33,10 +41,7 @@ class ConsumptionCalculator {
   
   // Метод "за площею"
   static calculateAreaBased(areaValue, energyCoefficient = 1, areaPercentOrSize = 100) {
-    const adjusted =
-      parseFloat(areaValue) *
-      parseFloat(energyCoefficient) *
-      (parseFloat(areaPercentOrSize) / 100);
+    const adjusted = applyCoefficient(areaValue, energyCoefficient, areaPercentOrSize);
   
     return {
       direct_consumption: 0,
@@ -47,15 +52,8 @@ class ConsumptionCalculator {
 
   //Змішаний метод
   static calculateMixed(consumption, areaValue, calcCoeff = 1, energyCoeff = 1, areaPercentOrSize = 100) {
-    const directPart =
-      parseFloat(consumption) *
-      parseFloat(calcCoeff) *
-      (parseFloat(areaPercentOrSize) / 100);
-  
-    const areaPart =
-      parseFloat(areaValue) *
-      parseFloat(energyCoeff) *
-      (parseFloat(areaPercentOrSize) / 100);
+    const directPart = applyCoefficient(consumption, calcCoeff, areaPercentOrSize);
+    const areaPart = applyCoefficient(areaValue, energyCoeff, areaPercentOrSize);
   
     const total = directPart + areaPart;
   
