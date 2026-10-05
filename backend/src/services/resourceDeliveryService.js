@@ -1,6 +1,30 @@
 const { ResourceDelivery, EnergyResourceType, Location } = require('../../models');
 const { Op } = require('sequelize');
 
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 100;
+
+const DELIVERY_INCLUDES = [
+  { model: Location, as: 'location', attributes: ['id', 'name'] },
+  { model: EnergyResourceType, as: 'energyResourceType', attributes: ['id', 'name', 'unit'] },
+];
+ 
+// Перевіряє, що локація існує і активна. action — 'create' або 'update' (для тексту помилки)
+async function ensureActiveLocation(locationId, action) {
+  const location = await Location.findByPk(locationId);
+  if (!location) throw new Error('Location not found');
+  if (!location.is_active) throw new Error(`Cannot ${action} delivery - location is inactive`);
+  return location;
+}
+ 
+// Перевіряє, що тип ресурсу існує і активний
+async function ensureActiveResourceType(typeId, action) {
+  const type = await EnergyResourceType.findByPk(typeId);
+  if (!type) throw new Error('Energy resource type not found');
+  if (!type.is_active) throw new Error(`Cannot ${action} delivery - energy resource type is inactive`);
+  return type;
+}
+
 class ResourceDeliveryService {
   async getAllDeliveries(filters = {}) {
     const where = {};
@@ -17,15 +41,15 @@ class ResourceDeliveryService {
       where.delivery_date = filters.delivery_date;
     }
 
-    const limit = parseInt(filters.limit) || 10;
-    const page = parseInt(filters.page) || 1;
+    const parsedLimit = parseInt(filters.limit);
+    const parsedPage = parseInt(filters.page);
+
+    const limit = parsedLimit > 0 ? Math.min(parsedLimit, MAX_LIMIT) : DEFAULT_LIMIT;
+    const page = parsedPage > 0 ? parsedPage : 1;
 
     const result = await ResourceDelivery.findAndCountAll({
       where,
-      include: [
-        { model: Location, as: 'location', attributes: ['id', 'name'] },
-        { model: EnergyResourceType, as: 'energyResourceType', attributes: ['id', 'name', 'unit'] },
-      ],
+      include: DELIVERY_INCLUDES,
       order: [['delivery_date', 'DESC']],
       limit,
       offset: (page - 1) * limit,
@@ -38,12 +62,7 @@ class ResourceDeliveryService {
   }
 
   async getDeliveryById(id) {
-    return await ResourceDelivery.findByPk(id, {
-      include: [
-        { model: Location, as: 'location', attributes: ['id', 'name'] },
-        { model: EnergyResourceType, as: 'energyResourceType', attributes: ['id', 'name', 'unit'] },
-      ],
-    });
+    return await ResourceDelivery.findByPk(id, { include: DELIVERY_INCLUDES });
   }
 
   async createResourceDelivery(data) {
@@ -58,17 +77,14 @@ class ResourceDeliveryService {
       supplier,
     } = data;
 
-    if (!location_id || !energy_resource_type_id || !delivery_date || !quantity || !unit) {
+    const isQuantityMissing = quantity === undefined || quantity === null;
+
+    if (!location_id || !energy_resource_type_id || !delivery_date || isQuantityMissing || !unit) {
       throw new Error('Required fields missing');
     }
 
-    const location = await Location.findByPk(location_id);
-    if (!location) throw new Error('Location not found');
-    if (!location.is_active) throw new Error('Cannot create delivery - location is inactive');
-
-    const energyResourceType = await EnergyResourceType.findByPk(energy_resource_type_id);
-    if (!energyResourceType) throw new Error('Energy resource type not found');
-    if (!energyResourceType.is_active) throw new Error('Cannot create delivery - energy resource type is inactive');
+    await ensureActiveLocation(location_id, 'create');
+    await ensureActiveResourceType(energy_resource_type_id, 'create');
 
     const existing = await ResourceDelivery.findOne({
       where: { location_id, energy_resource_type_id, delivery_date },
@@ -94,15 +110,11 @@ class ResourceDeliveryService {
     if (!delivery) throw new Error('Delivery not found');
 
     if (updateData.location_id && updateData.location_id !== delivery.location_id) {
-      const location = await Location.findByPk(updateData.location_id);
-      if (!location) throw new Error('Location not found');
-      if (!location.is_active) throw new Error('Cannot update delivery - location is inactive');
+      await ensureActiveLocation(updateData.location_id, 'update');
     }
 
     if (updateData.energy_resource_type_id && updateData.energy_resource_type_id !== delivery.energy_resource_type_id) {
-      const energyResourceType = await EnergyResourceType.findByPk(updateData.energy_resource_type_id);
-      if (!energyResourceType) throw new Error('Energy resource type not found');
-      if (!energyResourceType.is_active) throw new Error('Cannot update delivery - energy resource type is inactive');
+      await ensureActiveResourceType(updateData.energy_resource_type_id, 'update');
     }
 
     if (updateData.location_id || updateData.energy_resource_type_id || updateData.delivery_date) {
