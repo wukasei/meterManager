@@ -121,67 +121,11 @@ const deleteMeter = async (req, res) => {
   }
 };
 
-const getAllMeterTenants = async (req, res) => {
-  try {
-    const filters = {
-      meter_id: req.query.meter_id,
-      tenant_id: req.query.tenant_id,
-      active_only: req.query.active_only,
-    };
-
-    const meterTenants = await meterService.getAllMeterTenants(filters);
-    res.status(200).json({ success: true, data: meterTenants, count: meterTenants.length });
-  } catch (error) {
-    sendErrorResponse(res, error);
-  }
-};
-
-const createMeterTenant = async (req, res) => {
-  try {
-    const meterTenant = await meterService.createMeterTenant(req.body);
-    res.status(201).json({
-      success: true,
-      message: 'Meter tenant assignment created successfully',
-      data: meterTenant,
-    });
-  } catch (error) {
-    sendErrorResponse(res, error);
-  }
-};
-
-const deleteMeterTenant = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await meterService.deleteMeterTenant(id);
-    res.status(200).json({ success: true, message: 'Meter tenant assignment deleted permanently' });
-  } catch (error) {
-    sendErrorResponse(res, error);
-  }
-};
-
-const updateMeterTenant = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const meterTenant = await meterService.updateMeterTenant(id, req.body);
-    res.status(200).json({
-      success: true,
-      message: 'Meter tenant assignment updated successfully',
-      data: meterTenant,
-    });
-  } catch (error) {
-    sendErrorResponse(res, error);
-  }
-};
-
 module.exports = {
   getAllMeters,
   getMeterById,
   getMeterDependencies,
   createMeter,
   updateMeter,
-  deleteMeter,
-  getAllMeterTenants,
-  createMeterTenant,
-  deleteMeterTenant,
-  updateMeterTenant,
+  deleteMeter
 };
