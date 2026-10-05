@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for utils/consumptionCalculator.js</title>
+    <title>Code coverage report for middlewares/tariffValidation.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -19,20 +19,20 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">utils</a> consumptionCalculator.js</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">middlewares</a> tariffValidation.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>20/20</span>
+                <span class='fraction'>36/36</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">85% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>14/14</span>
+                <span class='fraction'>17/20</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>20/20</span>
+                <span class='fraction'>33/33</span>
             </div>
         
             
@@ -137,155 +137,200 @@
 <a name='L72'></a><a href='#L72'>72</a>
 <a name='L73'></a><a href='#L73'>73</a>
 <a name='L74'></a><a href='#L74'>74</a>
-<a name='L75'></a><a href='#L75'>75</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&nbsp;
-function applyCoefficient(value, coefficient, areaPercentOrSize){
-  return parseFloat(value) * parseFloat(coefficient) * (parseFloat(areaPercentOrSize)/100);
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const { body, param, query } = require('express-validator');
+const handleValidationErrors = require('./handleValidationErrors');
+&nbsp;
+const PRICE_MESSAGE = 'Price must be a non-negative decimal number with up to 4 decimal places';
+&nbsp;
+const validateIdParam = () =&gt;
+  param('id').isInt({ min: 1 }).withMessage('Tariff ID must be a positive integer');
+&nbsp;
+const validatePositiveInt = (field, location = body, isOptional = false) =&gt; {
+  let chain = location(field);
+  if (isOptional) chain = chain.optional();
+  return chain.isInt({ min: 1 }).withMessage(`${field} must be a positive integer.`);
 }
 &nbsp;
-class ConsumptionCalculator {
+const validateDate = (field, location = <span class="branch-0 cbranch-no" title="branch not covered" >body,</span> isOptional = <span class="branch-0 cbranch-no" title="branch not covered" >false,</span> isRequired = false) =&gt; {
+    let chain = location(field);
+    if (isRequired) chain = chain.notEmpty().withMessage(`${field} is required`).bail();
+    if (isOptional) chain = chain.optional({ nullable: true });
+    
+    return chain
+        .isDate({ format: 'YYYY-MM-DD' })
+        .withMessage(`${field} must be a valid date in YYYY-MM-DD format`);
+};
 &nbsp;
-  //Різниця між показниками
-  static calculateConsumption(currentReading, previousReading = null) {
-    const current = parseFloat(currentReading);
+const validateValidToDate = () =&gt; 
+    validateDate('valid_to', body, true)
+    .custom((value, { req }) =&gt; {
+      const validFrom = req.body.valid_from;
+      const validTo = value;
 &nbsp;
-    if (Number.isNaN(current)) {
-      throw new Error('Invalid meter reading: reading must be a number.');
-    }
+      if (validTo &amp;&amp; validFrom) {
+        if (new Date(validTo) &lt;= new Date(validFrom)) {
+          throw new Error('valid_to date must be after valid_from date.');
+        }
+      }
+      return true;
+  });
 &nbsp;
-    if (previousReading === null) {
-      return current;
-    }
-&nbsp;
-    const consumption = current - parseFloat(previousReading);
-&nbsp;
-    if (consumption &lt; 0) {
-      throw new Error(
-        "Invalid meter reading: consumption cannot be negative. New reading must be &gt;= previous reading."
-      );
-    }
-&nbsp;
-    return consumption;
+  // isFloat перевіряє, що це невід'ємне число,
+  // isDecimal — кількість знаків після коми (isFloat опцію decimal_digits не підтримує)  
+  const validatePrice = (isOptional = <span class="branch-0 cbranch-no" title="branch not covered" >false)</span> =&gt; {
+  let chain = body('price');
+ 
+  if (isOptional) {
+    chain = chain.optional();
+  } else {
+    chain = chain.notEmpty().withMessage('Price is required').bail();
   }
+ 
+  return chain
+    .isFloat({ min: 0 })
+    .withMessage(PRICE_MESSAGE)
+    .bail()
+    .isDecimal({ decimal_digits: '1,4' })
+    .withMessage(PRICE_MESSAGE);
+};
 &nbsp;
-  // Прямий метод — множимо на коефіцієнт
-  static calculateDirect(consumption, calculationCoefficient = 1, areaPercentOrSize = 100) {
-    const adjusted = applyCoefficient(consumption, calculationCoefficient, areaPercentOrSize);
+const createTariffValidation = [
+  validatePositiveInt('location_id'),
+  validatePositiveInt('energy_resource_type_id'),
+  validatePrice(false),
+  validateDate('valid_from', body, false, true),
+  validateValidToDate(),
+];
 &nbsp;
-    return {
-      direct_consumption: adjusted,
-      area_based_consumption: 0,
-      total_consumption: adjusted,
-    };
-  }
-  
-  // Метод "за площею"
-  static calculateAreaBased(areaValue, energyCoefficient = 1, areaPercentOrSize = 100) {
-    const adjusted = applyCoefficient(areaValue, energyCoefficient, areaPercentOrSize);
-  
-    return {
-      direct_consumption: 0,
-      area_based_consumption: adjusted,
-      total_consumption: adjusted,
-    };
-  }  
+const updateTariffValidation = [
+  validateIdParam(),
+  validatePositiveInt('location_id', body, true),
+  validatePositiveInt('energy_resource_type_id', body, true),
+  validatePrice(true),
+  validateDate('valid_from', body, true),
+  validateValidToDate(),
+];
 &nbsp;
-  //Змішаний метод
-  static calculateMixed(consumption, areaValue, calcCoeff = 1, energyCoeff = 1, areaPercentOrSize = 100) {
-    const directPart = applyCoefficient(consumption, calcCoeff, areaPercentOrSize);
-    const areaPart = applyCoefficient(areaValue, energyCoeff, areaPercentOrSize);
-  
-    const total = directPart + areaPart;
-  
-    return {
-      direct_consumption: directPart,
-      area_based_consumption: areaPart,
-      total_consumption: total,
-    };
-  }  
+const getTariffByIdValidation = [validateIdParam()];
 &nbsp;
-  //Розрахунок total cost
-  static calculateTotalCost(totalConsumption, unitPrice) {
-    return parseFloat(totalConsumption) * parseFloat(unitPrice);
-  }
-}
+const getTariffsQueryValidation = [
+  validatePositiveInt('location_id', query, true),
+  validatePositiveInt('energy_resource_type_id', query, true),
+  validateDate('valid_from', query, true),
+  validateDate('valid_to', query, true),
+];
 &nbsp;
-module.exports = ConsumptionCalculator;
-&nbsp;
-  </pre></td></tr></table></pre>
+module.exports = {
+  createTariffValidation,
+  updateTariffValidation,
+  getTariffByIdValidation,
+  getTariffsQueryValidation,
+  handleValidationErrors,
+};</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->

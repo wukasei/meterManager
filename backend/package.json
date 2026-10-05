@@ -11,6 +11,12 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write ."
   },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/tests/**"
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MeterManager/meter-manager-api.git"

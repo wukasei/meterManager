@@ -1,5 +1,6 @@
-const { EnergyResourceType, Meter, ResourceDelivery, MeterTenant, sequelize } = require('../../models');
+const { EnergyResourceType, Meter, ResourceDelivery, MeterTenant } = require('../../models');
 const { Op } = require('sequelize');
+const withTransaction = require('../utils/withTransaction');
 
 class EnergyResourceTypeService {
   async getAllResourceTypes(filters = {}) {
@@ -53,25 +54,29 @@ class EnergyResourceTypeService {
       });
       if (existingType) throw new Error('Resource type with this name already exists');
     }
-
-    if (is_active === false && type.is_active === true) {
-      await this.cascadeDeactivateResourceType(id);
-    }
-
-    return await type.update({
-      ...(name && { name }),
-      ...(unit !== undefined && { unit }),
-      ...(is_active !== undefined && { is_active }),
-    });
+    return withTransaction(null, async (transaction) => {
+      if (is_active === false && type.is_active === true) {
+        await this.cascadeDeactivateResourceType(id, transaction);
+      }
+ 
+      return type.update(
+        {
+          ...(name && { name }),
+          ...(unit !== undefined && { unit }),
+          ...(is_active !== undefined && { is_active }),
+        },
+        { transaction }
+      );
+    }); 
   }
 
-  async cascadeDeactivateResourceType(id) {
-    const transaction = await sequelize.transaction();
-    try {
+  async cascadeDeactivateResourceType(id, externalTransaction = null) {
+    return withTransaction(externalTransaction, async (transaction) => {
       const metersCount = await Meter.count({
         where: { energy_resource_type_id: id, is_active: true },
+        transaction,
       });
-
+ 
       await Meter.update(
         { is_active: false },
         {
@@ -79,51 +84,50 @@ class EnergyResourceTypeService {
           transaction,
         }
       );
-
-      await transaction.commit();
+ 
       return { deactivated_meters: metersCount };
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+    });
   }
 
   async deleteResourceType(id) {
     const type = await this.getResourceTypeById(id);
     if (type.is_active) throw new Error('Cannot delete active resource type. Deactivate it first.');
 
-    await this.cascadeDeleteResourceType(id);
-    return await type.destroy();
+    return withTransaction(null, async (transaction) => {
+      await this.cascadeDeleteResourceType(id, transaction);
+      return type.destroy({ transaction });
+    });
   }
 
-  async cascadeDeleteResourceType(id) {
-    const transaction = await sequelize.transaction();
-    try {
+  async cascadeDeleteResourceType(id, externalTransaction = null) {
+    return withTransaction(externalTransaction, async (transaction) => {
       const meters = await Meter.findAll({
         where: { energy_resource_type_id: id },
         attributes: ['id'],
         transaction,
       });
-      const meterIds = meters.map(meter => meter.id);
-      const meterTenantsCount = meterIds.length > 0 ? await MeterTenant.count({ where: { meter_id: { [Op.in]: meterIds } } }) : 0;
-      const deliveriesCount = await ResourceDelivery.count({ where: { energy_resource_type_id: id } });
-
+      const meterIds = meters.map((meter) => meter.id);
+      const meterTenantsCount =
+        meterIds.length > 0
+          ? await MeterTenant.count({ where: { meter_id: { [Op.in]: meterIds } }, transaction })
+          : 0;
+      const deliveriesCount = await ResourceDelivery.count({
+        where: { energy_resource_type_id: id },
+        transaction,
+      });
+ 
       if (meterIds.length > 0) {
         await MeterTenant.destroy({ where: { meter_id: { [Op.in]: meterIds } }, transaction });
       }
       await Meter.destroy({ where: { energy_resource_type_id: id }, transaction });
       await ResourceDelivery.destroy({ where: { energy_resource_type_id: id }, transaction });
-
-      await transaction.commit();
+ 
       return {
         deleted_meters: meterIds.length,
         deleted_meter_tenants: meterTenantsCount,
         deleted_deliveries: deliveriesCount,
       };
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+    });
   }
 }
 
