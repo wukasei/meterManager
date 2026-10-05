@@ -1,5 +1,6 @@
-const { Meter, MeterTenant, Tenant, Location, EnergyResourceType, sequelize } = require('../../models');
+const { Meter, MeterTenant, Tenant, Location, EnergyResourceType } = require('../../models');
 const { Op } = require('sequelize');
+const withTransaction = require('../utils/withTransaction');
 
 class MeterService {
   async getAllMeters(filters = {}) {
@@ -69,7 +70,7 @@ class MeterService {
     });
   }
 
-  async updateMeter(id, updateData) {
+    async updateMeter(id, updateData) {
     const meter = await this.getMeterById(id);
     const { serial_number, location_id, energy_resource_type_id, is_active } = updateData;
 
@@ -92,68 +93,78 @@ class MeterService {
       if (!energyResourceType.is_active) throw new Error('Cannot update meter with inactive energy resource type');
     }
 
-    if (is_active === false && meter.is_active === true) {
-      await this.cascadeDeactivateMeter(id);
-    }
+    // Закриття прив'язок і оновлення самого лічильника — в одній транзакції
+    return withTransaction(null, async (transaction) => {
+      if (is_active === false && meter.is_active === true) {
+        await this.cascadeDeactivateMeter(id, transaction);
+      }
 
-    return await meter.update({
-      ...(serial_number && { serial_number }),
-      ...(location_id && { location_id }),
-      ...(energy_resource_type_id && { energy_resource_type_id }),
-      ...(is_active !== undefined && { is_active }),
+      return meter.update(
+        {
+          ...(serial_number && { serial_number }),
+          ...(location_id && { location_id }),
+          ...(energy_resource_type_id && { energy_resource_type_id }),
+          ...(is_active !== undefined && { is_active }),
+        },
+        { transaction }
+      );
     });
   }
 
-  async cascadeDeactivateMeter(id) {
-    const transaction = await sequelize.transaction();
-    try {
-      const meterTenantsCount = await MeterTenant.count({
-        where: { meter_id: id, [Op.or]: [{ assigned_to: null }, { assigned_to: { [Op.gte]: new Date() } }] },
+    async cascadeDeactivateMeter(id, externalTransaction = null) {
+    return withTransaction(externalTransaction, async (transaction) => {
+      // Одна дата на всю операцію, щоб усі умови порівнювались з тим самим моментом
+      const now = new Date();
+
+      // Чинні прив'язки: без дати завершення або з датою завершення в майбутньому
+      const activeAssignments = {
+        meter_id: id,
+        [Op.or]: [{ assigned_to: null }, { assigned_to: { [Op.gte]: now } }],
+      };
+
+      const meterTenantsCount = await MeterTenant.count({ where: activeAssignments, transaction });
+
+      // Ще не почалися — видаляємо: орендар так і не почав користуватися лічильником
+      await MeterTenant.destroy({
+        where: { ...activeAssignments, assigned_from: { [Op.gt]: now } },
+        transaction,
       });
 
+      // Вже почалися — закриваємо сьогоднішньою датою
       await MeterTenant.update(
-        { assigned_to: new Date() },
+        { assigned_to: now },
         {
-          where: {
-            meter_id: id,
-            [Op.or]: [{ assigned_to: null }, { assigned_to: { [Op.gte]: new Date() } }],
-          },
+          where: { ...activeAssignments, assigned_from: { [Op.lte]: now } },
           transaction,
         }
       );
 
-      await transaction.commit();
       return { deactivated_meter_tenants: meterTenantsCount };
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+    });
   }
 
   async deleteMeter(id) {
     const meter = await this.getMeterById(id);
     if (meter.is_active) throw new Error('Cannot delete active meter. Deactivate it first.');
 
-    await this.cascadeDeleteMeter(id);
-    return await meter.destroy();
+    // Видалення прив'язок і самого лічильника — в одній транзакції
+    return withTransaction(null, async (transaction) => {
+      await this.cascadeDeleteMeter(id, transaction);
+      return meter.destroy({ transaction });
+    });
   }
 
-  async cascadeDeleteMeter(id) {
-    const transaction = await sequelize.transaction();
-    try {
-      const meterTenantsCount = await MeterTenant.count({ where: { meter_id: id } });
+  async cascadeDeleteMeter(id, externalTransaction = null) {
+    return withTransaction(externalTransaction, async (transaction) => {
+      const meterTenantsCount = await MeterTenant.count({ where: { meter_id: id }, transaction });
 
       await MeterTenant.destroy({ where: { meter_id: id }, transaction });
 
-      await transaction.commit();
       return {
         deleted_meter_tenants: meterTenantsCount,
         deleted_deliveries: 0,
       };
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+    });
   }
 
   async getAllMeterTenants(filters = {}) {
