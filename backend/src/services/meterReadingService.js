@@ -2,6 +2,67 @@ const { MeterReading, MeterTenant, Meter, Tenant, User, Location, EnergyResource
 const { Op } = require('sequelize');
 const ConsumptionCalculator = require('../utils/consumptionCalculator');
 const tariffService = require('./tariffService');
+const withTransaction = require('../utils/withTransaction');
+
+// Пов'язані дані, які підтягуються разом із показанням
+const READING_INCLUDES = [
+  {
+    model: MeterTenant,
+    as: 'MeterTenant',
+    attributes: ['id', 'tenant_id', 'meter_id'],
+    include: [
+      {
+        model: Meter,
+        as: 'Meter',
+        attributes: ['id', 'serial_number', 'location_id', 'energy_resource_type_id'],
+        include: [
+          { model: EnergyResourceType, as: 'EnergyResourceType', attributes: ['id', 'name'] },
+          { model: Location, as: 'Location', attributes: ['id', 'name', 'address', 'occupied_area'] },
+        ],
+      },
+      { model: Tenant, as: 'Tenant', attributes: ['id', 'name'] },
+    ],
+  },
+  { model: User, as: 'User', attributes: ['id', 'full_name'] },
+  { model: MeterReadingDistribution, as: 'distributions' },
+];
+
+// Лічильник прив'язки разом із площею локації — потрібен для розрахунку
+const METER_WITH_LOCATION_INCLUDE = [
+  {
+    model: Meter,
+    as: 'Meter',
+    include: [{ model: Location, as: 'Location', attributes: ['occupied_area'] }],
+  },
+];
+
+function calculateByMethod(method, { consumption, area, calculationCoeff, energyCoeff }) {
+  // ВАДА (див. тести [поточна поведінка] у meterReadingService.test.js):
+  // ConsumptionCalculator очікує ВІДСОТОК (ділить на 100), а сюди передається площа локації в м².
+  // Правильну формулу треба узгодити — після рішення змінити лише цей рядок
+  const areaPercent = area;
+ 
+  switch (method) {
+    case 'direct':
+      return ConsumptionCalculator.calculateDirect(consumption, calculationCoeff, areaPercent);
+    case 'area_based':
+      return ConsumptionCalculator.calculateAreaBased(area, energyCoeff, areaPercent);
+    case 'mixed':
+      return ConsumptionCalculator.calculateMixed(
+        consumption,
+        area,
+        calculationCoeff,
+        energyCoeff,
+        areaPercent
+      );
+    default:
+      return null;
+  }
+}
+
+function getLocationArea(meterTenant) {
+  return parseFloat(meterTenant.Meter.Location?.occupied_area) || 0;
+}
 
 class MeterReadingService {
   async getAllLocations() {
@@ -32,60 +93,19 @@ class MeterReadingService {
     try {
     const readings = await MeterReading.findAll({
       where,
-      include: [
-        {
-          model: MeterTenant,
-          as: 'MeterTenant',
-          attributes: ['id', 'tenant_id', 'meter_id'],
-          include: [
-            {
-              model: Meter,
-              as: 'Meter',
-              attributes: ['id', 'serial_number', 'location_id', 'energy_resource_type_id'],
-              include: [
-                {
-                  model: EnergyResourceType,
-                  as: 'EnergyResourceType',
-                  attributes: ['id', 'name'],
-                },
-                {
-                  model: Location,
-                  as: 'Location',
-                  attributes: ['id', 'name', 'address', 'occupied_area'], 
-                },
-              ],
-            },
-            {
-              model: Tenant,
-              as: 'Tenant',
-              attributes: ['id', 'name'], // FIXED: Removed location_id
-            },
-          ],
-        },
-        { model: User,
-          as: 'User',
-          attributes: ['id', 'full_name'] 
-        },
-        { model: MeterReadingDistribution, as: 'distributions' },
-      ],
+      include: READING_INCLUDES,
       order: [['created_at', 'DESC']],
       raw: false,
     });
     const meterTenants = await MeterTenant.findAll({
       include: [
-        {
-          model: Meter,
-          as: 'Meter',
-          attributes: ['id', 'location_id'],
-          include: [
-            {
-              model: Location,
-              as: 'Location',
-              attributes: ['id', 'occupied_area'],
-            },
-          ],
-        },
-      ],
+          {
+            model: Meter,
+            as: 'Meter',
+            attributes: ['id', 'location_id'],
+            include: [{ model: Location, as: 'Location', attributes: ['id', 'occupied_area'] }],
+          },
+        ],
       raw: true,
     });
 
@@ -104,24 +124,19 @@ class MeterReadingService {
 
   return readings.map((reading) => {
     const plainReading = reading.get({ plain: true });
-    const tenantArea = parseFloat(plainReading.MeterTenant?.Meter?.Location?.occupied_area || 0);
-    //const locationArea = parseFloat(plainReading.MeterTenant?.Meter?.Location?.occupied_area || 0);
-    const areaPercentage = totalRentedArea > 0 ? (tenantArea / totalRentedArea) * 100 : 0;
-
-    const address = reading.MeterTenant?.Meter?.Location?.address;
-    const locationName = reading.MeterTenant?.Meter?.Location?.name;
-    const locationArea = parseFloat(reading.MeterTenant?.Meter?.Location?.occupied_area) || 0;
+      const location = plainReading.MeterTenant?.Meter?.Location;
+      const tenantArea = parseFloat(location?.occupied_area || 0);
+      const areaPercentage = totalRentedArea > 0 ? (tenantArea / totalRentedArea) * 100 : 0;
 
 
         return {
           ...plainReading,
           tenant_occupied_area: tenantArea,
-          location_occupied_area: locationArea,
+          location_occupied_area: parseFloat(location?.occupied_area) || 0,
           total_rented_area: totalRentedArea,
           area_percentage: areaPercentage,
-          address,
-          location_name: locationName,
-          
+          address: location?.address,
+          location_name: location?.name,
         };
       });
     } catch (error) {
@@ -131,45 +146,7 @@ class MeterReadingService {
   }
 
   async getReadingById(id) {
-    const reading = await MeterReading.findByPk(id, {
-      include: [
-        {
-          model: MeterTenant,
-          as: 'MeterTenant',
-          attributes: ['id', 'tenant_id', 'meter_id'],
-          include: [
-            {
-              model: Meter,
-              as: 'Meter',
-              attributes: ['id', 'serial_number', 'location_id', 'energy_resource_type_id'],
-              include: [
-                {
-                  model: EnergyResourceType,
-                  as: 'EnergyResourceType',
-                  attributes: ['id', 'name'],
-                },
-                {
-                  model: Location,
-                  as: 'Location',
-                  attributes: ['id', 'name', 'address', 'occupied_area'],
-                },
-              ],
-            },
-            {
-              model: Tenant,
-              as: 'Tenant',
-              attributes: ['id', 'name'], // FIXED: Removed location_id
-            },
-          ],
-        },
-        { model: User,
-          as: 'User',
-          attributes: ['id', 'full_name'] 
-        },
-        { model: MeterReadingDistribution, as: 'distributions' },
-
-      ],
-    });
+    const reading = await MeterReading.findByPk(id, { include: READING_INCLUDES });
 
     if (!reading) {
       throw new Error('Meter reading not found');
@@ -199,38 +176,21 @@ class MeterReadingService {
     let finalPreviousReading = previous_reading;
   
     if (finalPreviousReading === null || finalPreviousReading === undefined) {
-      const readingDateObj = new Date(reading_date);
   
       const previousReadingRecord = await MeterReading.findOne({
         where: {
           meter_tenant_id,
-          reading_date: { [Op.lt]: readingDateObj },
+          reading_date: { [Op.lt]: new Date(reading_date) },
         },
         order: [['reading_date', 'DESC']],
       });
-      finalPreviousReading = previousReadingRecord
-        ? previousReadingRecord.current_reading
-        : 0;
+      finalPreviousReading = previousReadingRecord? previousReadingRecord.current_reading: 0;
     }
   
-    const consumption = ConsumptionCalculator.calculateConsumption(
-      current_reading,
-      finalPreviousReading
-    );
+    const consumption = ConsumptionCalculator.calculateConsumption(current_reading,finalPreviousReading);
 
     const meterTenant = await MeterTenant.findByPk(meter_tenant_id, {
-      include: [{ 
-        model: Meter,
-        as: 'Meter',
-        include: [
-          { 
-            model: Location,
-            as: 'Location',
-            attributes: ['occupied_area'], 
-          },
-        ],
-       },
-      ],
+      include: METER_WITH_LOCATION_INCLUDE,
     });
 
     if (!meterTenant) throw new Error('Meter tenant not found');
@@ -242,37 +202,17 @@ class MeterReadingService {
       reading_date
     );
 
-    if(!tariff){
-      throw new Error('Invalid: Для цієї локації та типу ресурсу не налаштовано активний Тариф на обрану дату.');
-    }
+    const area = getLocationArea(meterTenant);
 
-    /*const areaPercent =
-      parseFloat(total_rented_area_percentage) ||
-      parseFloat(rental_area) ||
-      parseFloat(meterTenant?.Meter?.Location?.occupied_area);*/
+    const result = calculateByMethod(calculation_method, {
+      consumption,
+      area,
+      calculationCoeff: calculation_coefficient,
+      energyCoeff: energy_consumption_coefficient,
+    });
+    if (!result) throw new Error('Unknown calculation method');
 
-    const areaValue = parseFloat(meterTenant.Meter.Location?.occupied_area) || 0; 
-
-    const finalAreaForCalculation = areaValue ;
-
-    let direct_consumption = 0;
-    let final_area_consumption = 0;
-    let total_consumption = 0;
-
-    if (calculation_method === 'direct') {
-        ({ direct_consumption, area_based_consumption: final_area_consumption, total_consumption } =
-          ConsumptionCalculator.calculateDirect( consumption, calculation_coefficient, finalAreaForCalculation));
-    } else if (calculation_method === 'area_based') {
-      ({ direct_consumption, area_based_consumption: final_area_consumption, total_consumption } =
-        ConsumptionCalculator.calculateAreaBased(areaValue, energy_consumption_coefficient, finalAreaForCalculation));
-    } else if (calculation_method === 'mixed') {
-      ({ direct_consumption, area_based_consumption: final_area_consumption, total_consumption } =
-        ConsumptionCalculator.calculateMixed(consumption, areaValue, calculation_coefficient, energy_consumption_coefficient, finalAreaForCalculation));
-    } else {
-      throw new Error('Unknown calculation method');
-    }
-  
-    //const total_cost = ConsumptionCalculator.calculateTotalCost(total_consumption, tariff.price);
+    const { direct_consumption, area_based_consumption, total_consumption } = result;
   
     let total_cost = 0;
 
@@ -286,31 +226,13 @@ class MeterReadingService {
       const distCoeff = d.calculation_coefficient ?? calculation_coefficient;
       const distEnergyCoeff = d.energy_consumption_coefficient ?? energy_consumption_coefficient;
 
-      const occupiedArea = parseFloat(meterTenant.Meter.Location?.occupied_area) || 0;
-      
-      let consumedEnergy = 0;
-    
-      if (method === "direct") {
-        ({ total_consumption: consumedEnergy } = ConsumptionCalculator.calculateDirect(
-          difference,
-          distCoeff,
-          occupiedArea
-        ));
-      } else if (method === "area_based") {
-        ({ total_consumption: consumedEnergy } = ConsumptionCalculator.calculateAreaBased(
-          occupiedArea,
-          distEnergyCoeff,
-          occupiedArea
-        ));
-      } else if (method === "mixed") {
-        ({ total_consumption: consumedEnergy } = ConsumptionCalculator.calculateMixed(
-          difference,
-          occupiedArea,
-          distCoeff,
-          distEnergyCoeff,
-          occupiedArea
-        ));
-      }
+      const consumedEnergy =
+        calculateByMethod(method, {
+          consumption: difference,
+          area,
+          calculationCoeff: distCoeff,
+          energyCoeff: distEnergyCoeff,
+        })?.total_consumption ?? 0;
     
       const cost = ConsumptionCalculator.calculateTotalCost(consumedEnergy, tariff.price);
       total_cost += parseFloat(cost) || 0;
@@ -323,222 +245,175 @@ class MeterReadingService {
         calculation_method: method,
         calculation_coefficient: distCoeff,
         energy_consumption_coefficient: distEnergyCoeff,
-        area_percentage: occupiedArea, 
+        area_percentage: area, 
         consumed_energy: consumedEnergy.toFixed(2),
         cost: cost.toFixed(2),
       };
     });
     
-    
-
     if (distributionRecords.length === 0) {
       total_cost = ConsumptionCalculator.calculateTotalCost(total_consumption, tariff.price);
     }
 
-    const reading = await MeterReading.create({
-      meter_tenant_id,
-      reading_date,
-      current_reading,
-      previous_reading: finalPreviousReading,
-      consumption,
-      unit_price: tariff.price,
-      direct_consumption,
-      area_based_consumption: final_area_consumption,
-      total_consumption,
-      total_cost: total_cost.toFixed(2),
-      calculation_method,
-      executor_name,
-      tenant_representative,
-      created_by,
-      rental_area,
-      total_rented_area_percentage,
-      energy_consumption_coefficient,
-      calculation_coefficient,
-      notes,
-      act_number,
+   
+        // Показання і його категорії — в одній транзакції
+    return withTransaction(null, async (transaction) => {
+      const reading = await MeterReading.create(
+        {
+          meter_tenant_id,
+          reading_date,
+          current_reading,
+          previous_reading: finalPreviousReading,
+          consumption,
+          unit_price: tariff.price,
+          direct_consumption,
+          area_based_consumption:area_based_consumption,
+          total_consumption,
+          total_cost: total_cost.toFixed(2),
+          calculation_method,
+          executor_name,
+          tenant_representative,
+          created_by,
+          rental_area,
+          total_rented_area_percentage,
+          energy_consumption_coefficient,
+          calculation_coefficient,
+          notes,
+          act_number,
+        },
+        { transaction }
+      );
+
+      if (distributionRecords.length > 0) {
+        const recordsWithId = distributionRecords.map((d) => ({...d, meter_reading_id: reading.id,}));
+        await MeterReadingDistribution.bulkCreate(recordsWithId, { transaction });
+      }
+
+      return reading;
     });
-    
-    if (distributionRecords.length > 0) {
-      const recordsWithId = distributionRecords.map((d) => ({
-        ...d,
-        meter_reading_id: reading.id,
-      }));
-      await MeterReadingDistribution.bulkCreate(recordsWithId);
-    }
-    
-    return reading;
   }
   
   async updateReading(id, updateData) {
     const reading = await this.getReadingById(id);
-  
-    if (
-      updateData.current_reading ||
-      updateData.previous_reading ||
-      updateData.direct_consumption ||
-      updateData.area_based_consumption ||
-      updateData.reading_date ||
-      updateData.calculation_coefficient ||
-      updateData.energy_consumption_coefficient ||
-      updateData.distributions
-    ) {
-      let previousReading = updateData.previous_reading ?? reading.previous_reading;
-
-      if (!previousReading && (updateData.current_reading || updateData.reading_date)) {
-        const previousReadingRecord = await MeterReading.findOne({
-          where: {
-            meter_tenant_id: reading.meter_tenant_id,
-            reading_date: {
-              [Op.lt]: updateData.reading_date || reading.reading_date,
+ 
+    // Перерахунок, заміна категорій і оновлення показання — в одній транзакції
+    return withTransaction(null, async (transaction) => {
+      const needsRecalculation =
+        updateData.current_reading ||
+        updateData.calculation_method ||
+        updateData.previous_reading ||
+        updateData.direct_consumption ||
+        updateData.area_based_consumption ||
+        updateData.reading_date ||
+        updateData.calculation_coefficient ||
+        updateData.energy_consumption_coefficient ||
+        updateData.distributions;
+ 
+      if (needsRecalculation) {
+        let previousReading = updateData.previous_reading ?? reading.previous_reading;
+ 
+        if (!previousReading && (updateData.current_reading || updateData.reading_date)) {
+          const previousReadingRecord = await MeterReading.findOne({
+            where: {
+              meter_tenant_id: reading.meter_tenant_id,
+              reading_date: { [Op.lt]: updateData.reading_date || reading.reading_date },
             },
-          },
-          order: [['reading_date', 'DESC']],
-        });
-        previousReading = previousReadingRecord ? previousReadingRecord.current_reading : 0;
-      }
-
-      const consumption = ConsumptionCalculator.calculateConsumption(
-        updateData.current_reading ?? reading.current_reading,
-        previousReading
-      );
-
-      const meterTenant = await MeterTenant.findByPk(reading.meter_tenant_id, {
-        include: [
-          { 
-            model: Meter,
-            as: 'Meter',
-            include: [
-              { 
-                model: Location,
-                as: 'Location',
-                attributes: ['occupied_area'],
-               },
-            ],
-         },
-        ],
-      });
-  
-      if (!meterTenant?.Meter) throw new Error("Meter not linked to this tenant");
-
-      const tariff = await tariffService.getApplicableTariff(
-        meterTenant.Meter.location_id,
-        meterTenant.Meter.energy_resource_type_id,
-        updateData.reading_date || reading.reading_date
-      );
-      if(!tariff){
-        throw new Error('Invalid: Для цієї локації та типу ресурсу не налаштовано активний Тариф на обрану дату.');
-      }
-      const price = parseFloat(tariff?.price ?? 0);
-      const calculationCoeff =
-        updateData.calculation_coefficient ?? reading.calculation_coefficient ?? 1;
-      const energyCoeff =
-        updateData.energy_consumption_coefficient ?? reading.energy_consumption_coefficient ?? 1;
-
-        const areaValue = parseFloat(meterTenant.Meter.Location?.occupied_area) || 0; 
-        const finalAreaForCalculation = areaValue ;
-        let direct_consumption = 0;
-        let area_consumption = 0;
-        let total_consumption = 0;
-        let total_cost = 0;
-      if (updateData.distributions) {
-        await MeterReadingDistribution.destroy({ where: { meter_reading_id: id } });
-  
-        const newDistributions = [];
-  
-        for (const d of updateData.distributions) {
-          const difference = ConsumptionCalculator.calculateConsumption(
-            d.current_reading,
-            d.previous_reading
-          );
-        
-          const method = d.calculation_method || reading.calculation_method;
-          const distCoeff = d.calculation_coefficient ?? calculationCoeff;
-          const distAreaValue = parseFloat(meterTenant.Meter.Location?.occupied_area) || 0;
-          let consumedEnergy = 0;
-        
-          if (method === "direct") {
-            ({ total_consumption: consumedEnergy } = ConsumptionCalculator.calculateDirect(
-              difference,
-              distCoeff,
-              distAreaValue
-            ));
-          } else if (method === "area_based") {
-            ({ total_consumption: consumedEnergy } = ConsumptionCalculator.calculateAreaBased(
-              distAreaValue,
-              d.energy_consumption_coefficient ?? energyCoeff,
-              distAreaValue
-            ));
-          } else if (method === "mixed") {
-            ({ total_consumption: consumedEnergy } = ConsumptionCalculator.calculateMixed(
-              difference,
-              distAreaValue,
-              distCoeff,
-              d.energy_consumption_coefficient ?? energyCoeff,
-              distAreaValue
-            ));
-          }
-        
-          const cost = ConsumptionCalculator.calculateTotalCost(consumedEnergy, price);
-          total_cost += parseFloat(cost) || 0;
-        
-          newDistributions.push({
-            ...d,
-            meter_reading_id: id,
-            difference,
-            consumed_energy: consumedEnergy.toFixed(2),
-            cost: cost.toFixed(2),
-            area_percentage:distAreaValue 
+            order: [['reading_date', 'DESC']],
           });
-        }     
-        await MeterReadingDistribution.bulkCreate(newDistributions);
-      }
-
-      if (reading.calculation_method === "direct") {
-        ({ total_consumption, direct_consumption } = ConsumptionCalculator.calculateDirect(
+          previousReading = previousReadingRecord ? previousReadingRecord.current_reading : 0;
+        }
+ 
+        const consumption = ConsumptionCalculator.calculateConsumption(
+          updateData.current_reading ?? reading.current_reading,
+          previousReading
+        );
+ 
+        const meterTenant = await MeterTenant.findByPk(reading.meter_tenant_id, {
+          include: METER_WITH_LOCATION_INCLUDE,
+        });
+ 
+        if (!meterTenant?.Meter) throw new Error('Meter not linked to this tenant');
+ 
+        // getApplicableTariff сам кидає помилку, якщо тарифу на дату немає
+        const tariff = await tariffService.getApplicableTariff(
+          meterTenant.Meter.location_id,
+          meterTenant.Meter.energy_resource_type_id,
+          updateData.reading_date || reading.reading_date
+        );
+ 
+        const price = parseFloat(tariff?.price ?? 0);
+        const calculationCoeff = updateData.calculation_coefficient ?? reading.calculation_coefficient ?? 1;
+        const energyCoeff =
+          updateData.energy_consumption_coefficient ?? reading.energy_consumption_coefficient ?? 1;
+        // Перераховуємо за НОВИМ методом, якщо його змінюють, інакше — за збереженим
+        const calculationMethod = updateData.calculation_method ?? reading.calculation_method;
+        const area = getLocationArea(meterTenant);
+ 
+        let total_cost = 0;
+ 
+        if (updateData.distributions) {
+          await MeterReadingDistribution.destroy({ where: { meter_reading_id: id }, transaction });
+ 
+          const newDistributions = updateData.distributions.map((d) => {
+            const difference = ConsumptionCalculator.calculateConsumption(d.current_reading, d.previous_reading);
+ 
+            const consumedEnergy =
+              calculateByMethod(d.calculation_method || calculationMethod, {
+                consumption: difference,
+                area,
+                calculationCoeff: d.calculation_coefficient ?? calculationCoeff,
+                energyCoeff: d.energy_consumption_coefficient ?? energyCoeff,
+              })?.total_consumption ?? 0;
+ 
+            const cost = ConsumptionCalculator.calculateTotalCost(consumedEnergy, price);
+            total_cost += parseFloat(cost) || 0;
+ 
+            return {
+              ...d,
+              meter_reading_id: id,
+              difference,
+              consumed_energy: consumedEnergy.toFixed(2),
+              cost: cost.toFixed(2),
+              area_percentage: area,
+            };
+          });
+ 
+          await MeterReadingDistribution.bulkCreate(newDistributions, { transaction });
+        }
+ 
+        // Для невідомого методу всі значення лишаються нульовими
+        const {
+          direct_consumption = 0,
+          area_based_consumption = 0,
+          total_consumption = 0,
+        } = calculateByMethod(calculationMethod, {
           consumption,
+          area,
           calculationCoeff,
-          finalAreaForCalculation
-        ));
-
-        area_consumption = 0;
-      } else if (reading.calculation_method === "area_based") {
-        ({ total_consumption, area_based_consumption: area_consumption } =
-          ConsumptionCalculator.calculateAreaBased(
-            areaValue,
-            energyCoeff,
-            finalAreaForCalculation
-          ));
-        direct_consumption = 0;
-      
-      } else if (reading.calculation_method === "mixed") {
-        ({ total_consumption, direct_consumption, area_based_consumption: area_consumption } =
-          ConsumptionCalculator.calculateMixed(
-            consumption,
-            areaValue,
-            calculationCoeff,
-            energyCoeff,
-            finalAreaForCalculation
-          ));
+          energyCoeff,
+        }) || {};
+ 
+        // Без категорій вартість рахується від загального споживання
+        if (!updateData.distributions || updateData.distributions.length === 0) {
+          total_cost = ConsumptionCalculator.calculateTotalCost(total_consumption, price);
+        }
+ 
+        updateData = {
+          ...updateData,
+          previous_reading: previousReading,
+          consumption,
+          unit_price: price,
+          direct_consumption,
+          area_based_consumption,
+          total_consumption,
+          total_cost: total_cost.toFixed(2),
+          calculation_coefficient: calculationCoeff,
+          energy_consumption_coefficient: energyCoeff,
+        };
       }
-      // Якщо категорій немає — рахуємо cost як завжди
-      if (!updateData.distributions || updateData.distributions.length === 0) {
-        total_cost = ConsumptionCalculator.calculateTotalCost(total_consumption, price);
-      }    
-      updateData = {
-        ...updateData,
-        previous_reading: previousReading,
-        consumption,
-        unit_price: price,
-        direct_consumption,
-        area_based_consumption: area_consumption,
-        total_consumption,
-        total_cost:total_cost.toFixed(2),
-        calculation_coefficient: calculationCoeff,
-        energy_consumption_coefficient: energyCoeff,       
-      };
-    }
-  
-    return await reading.update(updateData);
+ 
+      return reading.update(updateData, { transaction });
+    });
   }
   
   
@@ -568,23 +443,11 @@ class MeterReadingService {
               model: Meter,
               as: 'Meter',
               include: [
-                {
-                  model: EnergyResourceType,
-                  as: 'EnergyResourceType',
-                  attributes: ['id', 'name'],
-                },
-                {
-                  model: Location,
-                  as: 'Location',
-                  attributes: ['id', 'name', 'address', 'occupied_area'],
-                },
+                { model: EnergyResourceType, as: 'EnergyResourceType', attributes: ['id', 'name'],},
+                { model: Location, as: 'Location', attributes: ['id', 'name', 'address', 'occupied_area'],},
               ],
             },
-            {
-              model: Tenant,
-              as: 'Tenant',
-              attributes: ['id', 'name'],
-            },
+            { model: Tenant, as: 'Tenant', attributes: ['id', 'name'],},
           ],
         },
       ],
