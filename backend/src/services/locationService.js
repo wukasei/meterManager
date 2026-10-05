@@ -1,5 +1,8 @@
-const { Location, Meter, ResourceDelivery, Tenant, sequelize } = require('../../models');
+const { Location, Meter, ResourceDelivery, Tenant, MeterTenant } = require('../../models');
 const { Op } = require('sequelize');
+const withTransaction = require('../utils/withTransaction');
+
+const LOCATION_INCLUDES = [{ model: Tenant, as: 'Tenant' }];
 
 class LocationService {
   async getAllLocations(filters = {}) {
@@ -18,7 +21,7 @@ class LocationService {
 
       const locations = await Location.findAll({
         where,
-        include: [{ model: Tenant, as: 'Tenant' }],
+        include: LOCATION_INCLUDES,
         order: [['created_at', 'DESC']],
       });
 
@@ -32,7 +35,7 @@ class LocationService {
 
   async getLocationById(id) {
     const location = await Location.findByPk(id, {
-      include: [{ model: Tenant, as: 'Tenant' }],
+      include: LOCATION_INCLUDES,
     });
     if (!location) {
       throw new Error('Location not found');
@@ -83,31 +86,34 @@ class LocationService {
       }
     }
 
-    if (is_active === false && location.is_active === true) {
-      await this.cascadeDeactivateLocation(id);
-    }
-
-    return await location.update({
-      ...(name && { name }),
-      ...(address !== undefined && { address }),
-      ...(is_active !== undefined && { is_active }),
-      ...(occupied_area !== undefined && { occupied_area }),
-      tenant_id: location.tenant_id,
+    return withTransaction(null, async (transaction) => {
+      if (is_active === false && location.is_active === true) {
+        await this.cascadeDeactivateLocation(id, transaction);
+      }
+ 
+      return location.update(
+        {
+          ...(name && { name }),
+          ...(address !== undefined && { address }),
+          ...(is_active !== undefined && { is_active }),
+          ...(occupied_area !== undefined && { occupied_area }),
+          tenant_id: location.tenant_id,
+        },
+        { transaction }
+      );
     });
   }
 
-  async cascadeDeactivateLocation(locationId) {
-    const transaction = await sequelize.transaction();
-
-    try {
+  async cascadeDeactivateLocation(locationId, externalTransaction = null) {
+    return withTransaction(externalTransaction, async (transaction) => {
       const location = await Location.findByPk(locationId, { transaction });
       if (!location) throw new Error('Location not found');
-
+ 
       const metersCount = await Meter.count({
         where: { location_id: locationId, is_active: true },
         transaction,
       });
-
+ 
       await Meter.update(
         { is_active: false },
         {
@@ -115,7 +121,7 @@ class LocationService {
           transaction,
         }
       );
-
+ 
       let tenantsCount = 0;
       if (location.tenant_id) {
         const activeLocationsForTenant = await Location.count({
@@ -126,28 +132,25 @@ class LocationService {
           },
           transaction,
         });
-
+ 
         if (activeLocationsForTenant === 0) {
-          tenantsCount = await Tenant.update(
+          // Tenant.update повертає масив [кількість змінених рядків] — беремо перший елемент
+          const [updatedTenants] = await Tenant.update(
             { is_active: false },
             {
               where: { id: location.tenant_id, is_active: true },
               transaction,
             }
           );
+          tenantsCount = updatedTenants;
         }
       }
-
-      await transaction.commit();
-
+ 
       return {
         deactivated_meters: metersCount,
         deactivated_tenants: tenantsCount,
       };
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+    });
   }
 
   async getLocationDependencies(locationId) {
@@ -188,41 +191,50 @@ class LocationService {
       throw new Error('Cannot delete active location. Deactivate it first.');
     }
 
-    await this.cascadeDeleteLocation(id);
-
-    return await location.destroy();
+    return withTransaction(null, async (transaction) => {
+      await this.cascadeDeleteLocation(id, transaction);
+      return location.destroy({ transaction });
+    });
   }
 
-  async cascadeDeleteLocation(locationId) {
-    const { MeterTenant } = require('../../models');
-    const transaction = await sequelize.transaction();
-
-    try {
+  async cascadeDeleteLocation(locationId, externalTransaction = null) {
+ 
+    return withTransaction(externalTransaction, async (transaction) => {
       const meters = await Meter.findAll({
         where: { location_id: locationId },
         attributes: ['id'],
         transaction,
       });
-
+ 
       const meterIds = meters.map((meter) => meter.id);
-
+ 
+      // Рахуємо ДО видалення: після нього цих записів у базі вже не буде
+      const meterTenantsCount =
+        meterIds.length > 0
+          ? await MeterTenant.count({ where: { meter_id: { [Op.in]: meterIds } }, transaction })
+          : 0;
+      const deliveriesCount = await ResourceDelivery.count({
+        where: { location_id: locationId },
+        transaction,
+      });
+ 
       if (meterIds.length > 0) {
         await MeterTenant.destroy({
           where: { meter_id: { [Op.in]: meterIds } },
           transaction,
         });
       }
-
+ 
       await ResourceDelivery.destroy({
         where: { location_id: locationId },
         transaction,
       });
-
+ 
       await Meter.destroy({
         where: { location_id: locationId },
         transaction,
       });
-
+ 
       await Location.update(
         { tenant_id: null },
         {
@@ -230,27 +242,14 @@ class LocationService {
           transaction,
         }
       );
-
-      await transaction.commit();
-
+ 
       return {
         deleted_meters: meterIds.length,
-        deleted_meter_tenants:
-          meterIds.length > 0
-            ? await MeterTenant.count({
-                where: { meter_id: { [Op.in]: meterIds } },
-              })
-            : 0,
-        deleted_deliveries: await ResourceDelivery.count({
-          where: { location_id: locationId },
-        }),
+        deleted_meter_tenants: meterTenantsCount,
+        deleted_deliveries: deliveriesCount,
         deleted_tenants: 0,
       };
-    } catch (error) {
-      await transaction.rollback();
-      console.error('Error in cascadeDeleteLocation:', error);
-      throw error;
-    }
+    });
   }
 }
 
