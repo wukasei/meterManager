@@ -2,13 +2,23 @@
 const resourceDeliveryService = require('../services/resourceDeliveryService');
 
 const mapErrorToStatus = (errorMessage) => {
-  if (errorMessage.includes('not found')) return 404;
-  if (errorMessage.includes('Invalid') || errorMessage.includes('required') || errorMessage.includes('format'))
+  // Порівнюємо без урахування регістру: "Required" і "required" — одне й те саме
+  const message = errorMessage.toLowerCase();
+
+  if (message.includes('not found')) return 404;
+  if (message.includes('already exists')) return 409;
+  if (
+    message.includes('invalid') ||
+    message.includes('required') ||
+    message.includes('format') ||
+    message.includes('inactive')
+  ) {
     return 400;
+  }
   return 500;
 };
 
-const sendErrorResponse = (res, error, defaultStatusCode = 500) => {
+const sendErrorResponse = (res, error) => {
   const statusCode = mapErrorToStatus(error.message);
 
   const clientMessage = statusCode === 500 ? 'Internal server error' : error.message;
@@ -32,7 +42,7 @@ const getAllResourceDeliveries = async (req, res) => {
       count: count,
     });
   } catch (error) {
-    sendErrorResponse(res, error, 500);
+    sendErrorResponse(res, error);
   }
 };
 
@@ -47,7 +57,7 @@ const getResourceDeliveryById = async (req, res) => {
 
     res.status(200).json({ success: true, data: delivery });
   } catch (error) {
-    sendErrorResponse(res, error, 500);
+    sendErrorResponse(res, error);
   }
 };
 
@@ -61,7 +71,7 @@ const createResourceDelivery = async (req, res) => {
       data: delivery,
     });
   } catch (error) {
-    sendErrorResponse(res, error, 400);
+    sendErrorResponse(res, error);
   }
 };
 
@@ -76,7 +86,7 @@ const updateResourceDelivery = async (req, res) => {
       data: delivery,
     });
   } catch (error) {
-    sendErrorResponse(res, error, 400);
+    sendErrorResponse(res, error);
   }
 };
 
@@ -90,7 +100,7 @@ const deleteResourceDelivery = async (req, res) => {
       message: 'Delivery deleted successfully',
     });
   } catch (error) {
-    sendErrorResponse(res, error, 400);
+    sendErrorResponse(res, error);
   }
 };
 
