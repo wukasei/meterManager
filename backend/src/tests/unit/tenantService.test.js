@@ -10,6 +10,7 @@ jest.mock('../../../models', () => ({
   },
   Location: {
     update: jest.fn(),
+    findByPk: jest.fn(),
   },
   sequelize: {
     transaction: jest.fn(),
@@ -76,6 +77,27 @@ describe('getAllTenants', () => {
 
     const { where } = Tenant.findAll.mock.calls[0][0];
     expect(where.name[Op.iLike]).toBe('%llc%');
+  });
+
+  it('фільтрує за локацією: шукає орендаря, до якого прив’язана локація', async () => {
+    Location.findByPk.mockResolvedValue({ tenant_id: 3 });
+    Tenant.findAll.mockResolvedValue([{ id: 3 }]);
+
+    const result = await tenantService.getAllTenants({ location_id: '7' });
+
+    expect(Location.findByPk.mock.calls[0][0]).toBe('7');
+    const { where } = Tenant.findAll.mock.calls[0][0];
+    expect(where.id).toBe(3);
+    expect(result).toEqual([{ id: 3 }]);
+  });
+
+  it('якщо в локації немає орендаря, повертає порожній список', async () => {
+    Location.findByPk.mockResolvedValue({ tenant_id: null });
+
+    const result = await tenantService.getAllTenants({ location_id: '7' });
+
+    expect(result).toEqual([]);
+    expect(Tenant.findAll).not.toHaveBeenCalled();
   });
 });
 

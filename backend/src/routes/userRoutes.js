@@ -61,6 +61,7 @@ const { checkJwt, checkRole } = require('../middlewares/authMiddleware');
 router.get(
   '/',
   checkJwt,
+  checkRole('admin'),
   ...getUsersQueryValidation,
   handleValidationErrors,
   userController.getAllUsers
@@ -86,6 +87,7 @@ router.get(
 router.get(
   '/:id',
   checkJwt,
+  checkRole('admin'),
   ...getUserByIdValidation,
   handleValidationErrors,
   userController.getUserById
@@ -135,8 +137,8 @@ router.put(
  * @swagger
  * /api/users/{id}:
  *   delete:
- *     summary: Delete user
- *     description: Permanently deletes a user by ID
+ *     summary: Deactivate user
+ *     description: Deactivates a user by ID (sets is_active to false). The user record is kept.
  *     tags: [Users]
  *     parameters:
  *       - name: id
@@ -146,7 +148,7 @@ router.put(
  *           type: integer
  *     responses:
  *       200:
- *         description: User deleted permanently
+ *         description: User deactivated
  *       404:
  *         description: User not found
  */

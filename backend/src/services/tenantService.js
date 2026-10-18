@@ -25,6 +25,13 @@ class TenantService {
     if (filters.is_active !== undefined) where.is_active = filters.is_active;
     if (filters.name) where.name = { [Op.iLike]: `%${filters.name}%` };
 
+    // У кожної локації один орендар (поле tenant_id) — шукаємо саме його
+    if (filters.location_id) {
+      const location = await Location.findByPk(filters.location_id, { attributes: ['tenant_id'] });
+      if (!location || !location.tenant_id) return [];
+      where.id = location.tenant_id;
+    }
+
     return await Tenant.findAll({
       where,
       include: TENANT_INCLUDES,

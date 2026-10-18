@@ -2,9 +2,20 @@
 const userService = require('../services/userService');
 
 const mapErrorToStatus = (errorMessage) => {
-  if (errorMessage.includes('not found')) return 404;
-  if (errorMessage.includes('unique constraint') || errorMessage.includes('already exists')) return 409;
-  if (errorMessage.includes('Invalid') || errorMessage.includes('Validation')) return 400;
+  // Порівнюємо без урахування регістру
+  const message = errorMessage.toLowerCase();
+
+  if (message.includes('not found')) return 404;
+  if (message.includes('unique constraint') || message.includes('already exists')) return 409;
+  if (
+    message.includes('invalid') ||
+    message.includes('validation') ||
+    message.includes('cannot change') ||
+    message.includes('cannot deactivate') ||
+    message.includes('cannot delete')
+  ) {
+    return 400;
+  }
   return 500;
 };
 
@@ -66,14 +77,14 @@ const updateUser = async (req, res) => {
   }
 };
 
-const deleteUser = async (req, res) => {
+const deleteUser = async (req, res) => { 
   try {
     const { id } = req.params;
     await userService.deleteUser(id);
 
     res.status(200).json({
       success: true,
-      message: 'User deleted permanently',
+      message: 'User deactivated successfully',
     });
   } catch (error) {
     sendErrorResponse(res, error);

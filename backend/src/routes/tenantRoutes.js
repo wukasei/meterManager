@@ -211,9 +211,6 @@ router.delete(
   handleValidationErrors,
   tenantController.deleteTenant
 );
-//router.post(  checkJwt, checkRole('admin'), '/:tenantId/locations/:locationId', tenantController.assignLocationToTenant);
-//router.delete(  checkJwt, checkRole('admin'), '/:tenantId/locations/:locationId', tenantController.unassignLocationFromTenant);
-
 
 
 /**
