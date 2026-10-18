@@ -85,11 +85,15 @@ const createMeter = async (req, res) => {
 const updateMeter = async (req, res) => {
   try {
     const { id } = req.params;
+    const isDeactivation = req.body.is_active === false;
+
+    // Рахуємо прив'язки ДО оновлення: після деактивації чинних прив'язок уже не буде
+    const dependencies = isDeactivation ? await meterService.getMeterDependencies(id) : null;
+
     const meter = await meterService.updateMeter(id, req.body);
 
     let message = 'Meter updated successfully';
-    if (req.body.is_active === false) {
-      const dependencies = await meterService.getMeterDependencies(id);
+    if (isDeactivation) {
       if (dependencies.active_meter_tenants === 0) {
         message += ' (no dependent objects affected)';
       } else {

@@ -2,9 +2,20 @@
 const tariffService = require('../services/tariffService');
 
 const mapErrorToStatus = (errorMessage) => {
-  if (errorMessage.includes('not found')) return 404;
-  if (errorMessage.includes('Overlapping') || errorMessage.includes('overlaps')) return 409;
-  if (errorMessage.includes('Invalid') || errorMessage.includes('Data mismatch')) return 400;
+  // Порівнюємо без урахування регістру
+  const message = errorMessage.toLowerCase();
+
+  if (message.includes('not found')) return 404;
+  if (message.includes('overlapping') || message.includes('overlaps')) return 409;
+  if (
+    message.includes('invalid') ||
+    message.includes('data mismatch') ||
+    message.includes('required') ||
+    message.includes('inactive') ||
+    message.includes('must be after')
+  ) {
+    return 400;
+  }
   return 500;
 };
 
@@ -43,8 +54,6 @@ const getTariffById = async (req, res) => {
   try {
     const { id } = req.params;
     const tariff = await tariffService.getTariffById(id);
-
-    if (!tariff) throw new Error('Tariff not found');
 
     res.status(200).json({ success: true, data: tariff });
   } catch (error) {
@@ -105,12 +114,9 @@ const getApplicableTariff = async (req, res) => {
 
     const tariff = await tariffService.getApplicableTariff(location_id, energy_resource_type_id, reading_date);
 
-    if (!tariff) throw new Error('Applicable tariff not found for the given criteria.');
-
     res.status(200).json({ success: true, data: tariff });
   } catch (error) {
-    const customError = error.message.includes('not found') ? error : new Error('Failed to find applicable tariff.');
-    sendErrorResponse(res, customError);
+    sendErrorResponse(res, error);
   }
 };
 

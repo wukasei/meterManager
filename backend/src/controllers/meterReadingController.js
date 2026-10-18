@@ -9,8 +9,8 @@ const mapErrorToStatus = (errorMessage) => {
 };
 
 const sendErrorResponse = (res, error) => {
-  console.log("🔥 РЕАЛЬНА ПОМИЛКА:", error.message);
   const statusCode = mapErrorToStatus(error.message);
+  if (statusCode === 500) console.error('Unexpected error:', error);
   const clientMessage = statusCode === 500 ? 'Internal server error' : error.message;
 
   res.status(statusCode).json({
@@ -25,6 +25,8 @@ const getAllReadings = async (req, res) => {
       meter_tenant_id: req.query.meter_tenant_id,
       reading_date: req.query.reading_date,
       executor_name: req.query.executor_name,
+      act_number: req.query.act_number,
+      calculation_method: req.query.calculation_method,
     };
 
     const readings = await meterReadingService.getAllReadings(filters);

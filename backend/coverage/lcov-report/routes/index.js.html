@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/23</span>
+                <span class='fraction'>23/23</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/23</span>
+                <span class='fraction'>23/23</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -98,76 +98,76 @@
 <a name='L33'></a><a href='#L33'>33</a>
 <a name='L34'></a><a href='#L34'>34</a>
 <a name='L35'></a><a href='#L35'>35</a>
-<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
-const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = require('express');
+const router = express.Router();
 &nbsp;
-const authRoutes = <span class="cstat-no" title="statement not covered" >require('./authRoutes');</span>
-const userRoutes = <span class="cstat-no" title="statement not covered" >require('./userRoutes');</span>
+const authRoutes = require('./authRoutes');
+const userRoutes = require('./userRoutes');
 &nbsp;
-const locationRoutes = <span class="cstat-no" title="statement not covered" >require('./locationRoutes');</span>
-const tenantRoutes = <span class="cstat-no" title="statement not covered" >require('./tenantRoutes');</span>
+const locationRoutes = require('./locationRoutes');
+const tenantRoutes = require('./tenantRoutes');
 &nbsp;
-const meterRoutes = <span class="cstat-no" title="statement not covered" >require('./meterRoutes');</span>
-const meterReadingRoutes = <span class="cstat-no" title="statement not covered" >require('./meterReadingRoutes');</span>
-const meterTenantRoutes = <span class="cstat-no" title="statement not covered" >require('./meterTenantRoutes');</span>
+const meterRoutes = require('./meterRoutes');
+const meterReadingRoutes = require('./meterReadingRoutes');
+const meterTenantRoutes = require('./meterTenantRoutes');
 &nbsp;
-const resourceTypeRoutes = <span class="cstat-no" title="statement not covered" >require('./resourceTypeRoutes');</span>
-const resourceDeliveryRoutes = <span class="cstat-no" title="statement not covered" >require('./resourceDeliveryRoutes');</span>
-const tariffRoutes = <span class="cstat-no" title="statement not covered" >require('./tariffRoutes');</span>
+const resourceTypeRoutes = require('./resourceTypeRoutes');
+const resourceDeliveryRoutes = require('./resourceDeliveryRoutes');
+const tariffRoutes = require('./tariffRoutes');
 &nbsp;
 // const testRoute = require('./testRoute');
 &nbsp;
-<span class="cstat-no" title="statement not covered" >router.use('/auth', authRoutes);</span>
-<span class="cstat-no" title="statement not covered" >router.use('/users', userRoutes);</span>
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >router.use('/tenants', tenantRoutes);</span>
-<span class="cstat-no" title="statement not covered" >router.use('/locations', locationRoutes);</span>
+router.use('/tenants', tenantRoutes);
+router.use('/locations', locationRoutes);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >router.use('/meters', meterRoutes);</span>
-<span class="cstat-no" title="statement not covered" >router.use('/meter-tenants', meterTenantRoutes);</span>
-<span class="cstat-no" title="statement not covered" >router.use('/meter-readings', meterReadingRoutes);</span>
-<span class="cstat-no" title="statement not covered" >router.use('/resource-types', resourceTypeRoutes);</span>
-<span class="cstat-no" title="statement not covered" >router.use('/resource-deliveries', resourceDeliveryRoutes);</span>
-<span class="cstat-no" title="statement not covered" >router.use('/tariffs', tariffRoutes);</span>
+router.use('/meters', meterRoutes);
+router.use('/meter-tenants', meterTenantRoutes);
+router.use('/meter-readings', meterReadingRoutes);
+router.use('/resource-types', resourceTypeRoutes);
+router.use('/resource-deliveries', resourceDeliveryRoutes);
+router.use('/tariffs', tariffRoutes);
 &nbsp;
 // router.use('/test', testRoute);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = router;</span>
+module.exports = router;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -175,7 +175,7 @@ const tariffRoutes = <span class="cstat-no" title="statement not covered" >requi
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-05T14:19:39.089Z
+                at 2026-10-18T15:16:22.055Z
             </div>
         <script src="../prettify.js"></script>
         <script>
