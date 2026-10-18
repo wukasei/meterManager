@@ -3,6 +3,7 @@ const router = express.Router();
 const meterTenantController = require('../controllers/meterTenantController');
 const {
   createMeterTenantValidation,
+  updateMeterTenantValidation,
   getMeterTenantByIdValidation,
   getMeterTenantsQueryValidation,
   handleValidationErrors,
@@ -138,8 +139,7 @@ router.put(
   '/:id',
   checkJwt,
   checkRole('admin'),
-  getMeterTenantByIdValidation,
-  createMeterTenantValidation,
+  updateMeterTenantValidation,
   handleValidationErrors,
   meterTenantController.updateMeterTenant
 );
