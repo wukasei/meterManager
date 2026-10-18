@@ -2,9 +2,6 @@
 const AuthService = require('../services/authService');
 
 class AuthController {
-  constructor() {
-    this.verifyToken = this.verifyToken.bind(this);
-  }
 
   verifyToken = async (req, res) => {
     const payload = req.auth?.payload;
