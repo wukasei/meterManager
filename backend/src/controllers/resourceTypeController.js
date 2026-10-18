@@ -80,11 +80,17 @@ const createResourceType = async (req, res) => {
 const updateResourceType = async (req, res) => {
   try {
     const { id } = req.params;
+    const isDeactivation = req.body.is_active === false;
+
+    // Рахуємо залежності ДО оновлення: після деактивації активних лічильників уже не буде
+    const dependencies = isDeactivation
+      ? await energyResourceTypeService.getResourceTypeDependencies(id)
+      : null;
+
     const type = await energyResourceTypeService.updateResourceType(id, req.body);
 
     let message = 'Resource type updated successfully';
-    if (req.body.is_active === false) {
-      const dependencies = await energyResourceTypeService.getResourceTypeDependencies(id);
+    if (isDeactivation) {
       if (dependencies.active_meters === 0) {
         message += ' (no dependent objects affected)';
       } else {
