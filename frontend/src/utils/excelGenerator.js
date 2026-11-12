@@ -21,7 +21,7 @@ export const generateConsumptionAct = async (readings, resourceType, options = {
   let currentRow = 1;
 
   worksheet.getRow(currentRow).values = [
-    `Акт фіксації показників та розрахунок споживання ${getResourceGenitive(resourceType)} ${options.tenantCompany || ''} за період з`,
+    `Акт фіксації показників та розрахунок споживання ${getResourceGenitive(resourceType)} ${options.tenantCompany || ''} за період з ${formatPeriod(options.period)}`,
   ];
   worksheet.mergeCells(currentRow, 1, currentRow, 12);
   const titleCell = worksheet.getCell(currentRow, 1);
@@ -30,12 +30,12 @@ export const generateConsumptionAct = async (readings, resourceType, options = {
   worksheet.getRow(currentRow).height = 25;
   currentRow += 3;
 
-  const introText = `${options.organization || 'ТОВ «Про Тек Вікна Україна»'}, в особі ${
-    options.executorName || 'головного енергетика'
-  }, та\n${options.tenantCompany || 'ТОВ "ГалФрост"'}, в особі ${
-    options.tenantRepresentative || 'керуючого'
+  const introText = `${options.organization || '____________'}, в особі ${
+    options.executorName || '____________'
+  }, та\n${options.tenantCompany || '____________'}, в особі ${
+    options.tenantRepresentative || '____________'
   }, склали цей акт про наступне:\n1. Сторони цього акту зафіксували показники наступних приладів обліку, які знаходяться в приміщеннях за адресою: ${
-    options.address || 'Львівська обл., с. Зимна Вода, вул. Яворівська, 30'
+    options.address || '____________'
   }:`;
 
   worksheet.getRow(currentRow).values = [introText];
@@ -522,17 +522,7 @@ export const generateConsumptionAct = async (readings, resourceType, options = {
   currentRow += 2;
 
   const orgRow = worksheet.getRow(currentRow);
-  orgRow.values = [
-    options.organization || 'ТОВ «Про Тек Вікна Україна»',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    options.executorName || '',
-  ];
+  orgRow.values = [options.organization || '____________', '', '', '', '', '', '', '', options.executorName || ''];
   worksheet.mergeCells(currentRow, 1, currentRow, 8);
   worksheet.mergeCells(currentRow, 9, currentRow, 12);
   orgRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
@@ -542,7 +532,7 @@ export const generateConsumptionAct = async (readings, resourceType, options = {
 
   const tenantRow = worksheet.getRow(currentRow);
   tenantRow.values = [
-    options.tenantCompany || 'ТОВ «ГалФрост»',
+    options.tenantCompany || '____________',
     '',
     '',
     '',
@@ -561,7 +551,7 @@ export const generateConsumptionAct = async (readings, resourceType, options = {
 
   const execRow = worksheet.getRow(currentRow);
   execRow.values = [
-    `Виконав: ${options.executorTitle || 'інж.-енергетик'}`,
+    `Виконав: ${options.executorTitle || '____________'}`,
     '',
     '',
     '',
@@ -637,4 +627,20 @@ function getResourceUnit(resourceType) {
     Газ: 'Гкал',
   };
   return map[resourceType] || 'од.';
+}
+
+function formatPeriod(period) {
+  if (!period) return '';
+  let y, m;
+  if (typeof period === 'string' && /^\d{4}-\d{2}/.test(period)) {
+    [y, m] = period.split('-').map(Number);
+    m -= 1;
+  } else {
+    const d = new Date(period);
+    if (isNaN(d)) return '';
+    y = d.getFullYear();
+    m = d.getMonth();
+  }
+  const fmt = (d) => d.toLocaleDateString('uk-UA');
+  return `${fmt(new Date(y, m, 1))} по ${fmt(new Date(y, m + 1, 0))}`;
 }

@@ -183,7 +183,12 @@ const ActsTable = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [actOptions, setActOptions] = useState({
     period: new Date().toISOString().split('T')[0],
-    ...DEFAULT_ACT_OPTIONS,
+    organization: '',
+    tenantCompany: '',
+    address: '',
+    executorTitle: '',
+    executorName: '',
+    tenantRepresentative: '',
   });
 
   useEffect(() => {
@@ -293,14 +298,17 @@ const ActsTable = () => {
   }, [filteredReadings]);
 
   const handleGenerateAct = async () => {
-    if (filteredReadings.length === 0) {
+    const periodYM = actOptions.period.substring(0, 7);
+    const readingsForAct = filteredReadings.filter((r) => (r.readingDate || '').startsWith(periodYM));
+
+    if (readingsForAct.length === 0) {
       alert(UA.acts_no_data);
       return;
     }
 
     try {
       setGenerating(true);
-      await generateConsumptionAct(filteredReadings, selectedResource, actOptions);
+      await generateConsumptionAct(readingsForAct, selectedResource, actOptions);
       setDialogOpen(false);
       alert(`✅ ${UA.acts_success}`);
     } catch (err) {
@@ -345,7 +353,15 @@ const ActsTable = () => {
             variant="contained"
             startIcon={!isMobile && <FileDownloadIcon />}
             disabled={generating || filteredReadings.length === 0}
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              if (selectedMonth && filteredReadings.length > 0) {
+                const year = (filteredReadings[0].readingDate || '').substring(0, 4);
+                if (year) {
+                  setActOptions((prev) => ({ ...prev, period: `${year}-${selectedMonth}-01` }));
+                }
+              }
+              setDialogOpen(true);
+            }}
             size={isMobile ? 'small' : 'medium'}
           >
             {isMobile ? UA.acts_short : generating ? UA.acts_generating : UA.acts_generate}
@@ -606,7 +622,13 @@ const ActsTable = () => {
                 • {UA.acts_resource}: <strong>{selectedResource}</strong>
               </Typography>
               <Typography variant="body2">
-                • {UA.acts_records_count}: <strong>{filteredReadings.length}</strong>
+                • {UA.acts_records_count}:
+                <strong>
+                  {
+                    filteredReadings.filter((r) => (r.readingDate || '').startsWith(actOptions.period.substring(0, 7)))
+                      .length
+                  }
+                </strong>
               </Typography>
               <Typography variant="body2">
                 • {UA.acts_format}: <strong>{UA.acts_format_excel}</strong>
